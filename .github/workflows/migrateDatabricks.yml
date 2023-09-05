@@ -1,0 +1,43 @@
+name: migrateDatabricks
+
+on:
+  #push:
+  #  branches:
+  #    - main
+  workflow_dispatch:
+
+env:
+  keyVaultName: dankv
+  workspaceUrl: https://adb-5751579687223883.3.azuredatabricks.net
+  repoId: '3848099401790080'
+  branch: main
+
+jobs:
+  run-test-job:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: ${{ env.branch }}
+      #Login to azure for use with keyvault
+      - name: Azure Login
+        uses: Azure/login@v1
+        with:
+          creds: ${{ secrets.RESTCLISPBLOCK }}
+      #Use login above to sign into key vault and extract password
+      - name: Pull Databricks token from Key Vault
+        uses: Azure/get-keyvault-secrets@v1
+        with:
+          keyvault: ${{ env.keyVaultName }}
+          secrets: 'prodDatabricks-github-token'
+        id: keyVaultSecrets
+      #Use Databricks repo api to tell it to run a pull request on the static repo
+      - name: Update repo in Databricks
+        env:
+          # Databricks Access Token stored in Github Actions Secrets
+          DATABRICKS_ACCESS_TOKEN: ${{ steps.keyVaultSecrets.outputs.prodDatabricks-github-token }}
+        run: |
+          echo "Calling repos Update API to update branch."
+          curl -n -X PATCH ${{ env.workspaceUrl }}/api/2.0/repos/${{ env.repoId }} \
+            -H 'Authorization: Bearer '$DATABRICKS_ACCESS_TOKEN \
+            -d '{"branch": "${{ env.branch }}"}'
