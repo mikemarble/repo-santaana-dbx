@@ -1,0 +1,51 @@
+name: parent_migration
+
+on:
+  workflow_dispatch:
+  #pull_request:
+  #  branches:
+  #    - "main" 
+  #push:
+  #  branches:
+  #    - "main" 
+
+
+
+jobs:
+  dev_deployment:
+    name: dev_deployment
+    # This line specifies a dependency between this job and the test_migration job
+    # This line specifies an environment dependency.  Environments are how you can require a reviewer to approve
+    # a workflow before it can run.  This is useful if you want to make sure that the code is reviewed before it runs
+    uses: ./.github/workflows/child_databricks_deployment.yml
+    with:
+      tenant_id: 6c637512-c417-4e78-9d62-b61258e4b619
+      subscription_id: 2fc047b2-f5d2-4595-b6e9-59fcc4b7cda5
+      workspace_url: https://adb-5751579687223883.3.azuredatabricks.net
+      repo_path: ./notebooks
+      databricks_path: /Shared/deployed_notebooks
+      github_environment: dev
+      
+    secrets:
+      client_id: ${{ secrets.client_id }}
+      client_secret: ${{ secrets.client_secret }}
+
+  
+  prod_deployment:
+    name: prod_deployment
+    # This line specifies an environment dependency.  Environments are how you can require a reviewer to approve
+    # a workflow before it can run.  This is useful if you want to make sure that the code is reviewed before it runs
+    needs: [dev_deployment]
+    uses: ./.github/workflows/child_databricks_deployment.yml
+    with:
+      tenant_id: 6c637512-c417-4e78-9d62-b61258e4b619
+      subscription_id: 2fc047b2-f5d2-4595-b6e9-59fcc4b7cda5
+      workspace_url: https://adb-5751579687223883.3.azuredatabricks.net
+      repo_path: ./notebooks
+      databricks_path: /Shared/deployed_notebooks
+      github_environment: prod
+      
+    secrets:
+      client_id: ${{ secrets.client_id }}
+      client_secret: ${{ secrets.client_secret }}
+  
