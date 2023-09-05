@@ -1,0 +1,53 @@
+name: databricks_deployment
+
+on:
+  workflow_dispatch:
+
+env:
+  tenant_id: 6c637512-c417-4e78-9d62-b61258e4b619
+  subscription_id: 2fc047b2-f5d2-4595-b6e9-59fcc4b7cda5
+  client_id: ${{ secrets.client_id }}
+  client_secret: ${{ secrets.client_secret }}
+  workspace_url: https://adb-5751579687223883.3.azuredatabricks.net
+  repo_path: ./notebooks
+  databricks_path: /Shared/deployed_notebooks
+
+jobs:
+  update-dev-databricks-repo:
+    runs-on: [ubuntu-latest]
+    environment: dev
+    steps:
+      - uses: actions/checkout@v3
+      # Install databricks cli
+      #- name: install python packages
+      #  run: |
+      #    pip install databricks-cli
+      # Login to azure for use with keyvault
+
+      - name: install-databricks-cli
+        uses: microsoft/install-databricks-cli@v1.0.0
+
+      - name: Azure Login
+        uses: Azure/login@v1
+        with:
+          creds: '{"clientId":"${{ env.client_id }}","clientSecret":"${{ env.client_secret }}","subscriptionId":"${{ env.subscription_id }}","tenantId":"${{ env.tenant_id }}"}'
+      # Use login above to authenticate with databricks. This will create a databricks cli config file
+      # Then run the databricks cli command to import the notebooks from the repo to the workspace
+      
+      - name: Aquiring ADB Access Token
+        id: adb-login
+        uses: Azure/azure-resource-login-action@v1.0.0
+        with:
+          creds: '{"clientId":"${{ env.client_id }}","clientSecret":"${{ env.client_secret }}","subscriptionId":"${{ env.subscription_id }}","tenantId":"${{ env.tenant_id }}"}'
+          resource-url: 2ff814a6-3304-4ab8-85cb-cd0e6f879c1d
+
+      - name: test
+        run: ls ${{ env.repo_path }}
+
+      - name: databricks-import-directory
+        uses: microsoft/databricks-import-notebook@v1.0.0
+        with:
+          databricks-host: ${{ env.workspace_url }}
+          databricks-token: ${{ steps.adb-login.outputs.token }}
+          local-path: ${{ env.repo_path }}
+          remote-path: ${{ env.databricks_path }}
