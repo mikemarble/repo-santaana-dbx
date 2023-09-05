@@ -1,0 +1,67 @@
+name: child_databricks_deployment_gov
+
+on:
+  #This specifies this is a child github actions
+  workflow_call:
+    inputs:
+      tenant_id:
+        description: 'Tenant ID'
+        required: true
+        type: string
+      subscription_id:
+        description: 'Subscription ID'
+        required: true
+        type: string
+      workspace_url:
+        description: 'Databricks workspace url, starts with HTTPS://'
+        required: true
+        type: string
+      repo_path:
+        description: 'The file path within the repo to the notebooks to be deployed'
+        required: true
+        type: string
+      databricks_path:
+        description: 'The target deployment path in databricks'
+        required: true
+        type: string
+      github_environment:
+        description: 'The github environment to deploy to, this will require a review before deployment'
+        required: true
+        type: string
+      
+    secrets:
+      client_id:
+        description: 'Client ID'
+        required: true
+      client_secret:
+        description: 'Client Secret'
+        required: true
+
+jobs:
+  update-databricks-repo:
+    runs-on: [ubuntu-latest]
+    environment: ${{ inputs.github_environment }}
+    steps:
+      - uses: actions/checkout@v3
+      # Install databricks cli
+      - name: install-databricks-cli
+        uses: microsoft/install-databricks-cli@v1.0.0
+      # Login as the provided service principal credentials from the parent workflow.
+      - name: Azure Login
+        uses: Azure/login@v1
+        with:
+          creds: '{"clientId":"${{ secrets.client_id }}","clientSecret":"${{ secrets.client_secret }}","subscriptionId":"${{ inputs.subscription_id }}","tenantId":"${{ inputs.tenant_id }}"}'
+          environment: 'AzureUSGovernment'
+      
+      #Deploy the notebooks from the input path in the repo to the target path in databricks
+      - name: databricks-import-directory
+        run: |
+          export AZURE_TOKEN="$(az account get-access-token --resource 2ff814a6-3304-4ab8-85cb-cd0e6f879c1d --query "accessToken" --output tsv)"
+          export WORKSPACEURL=${{ inputs.workspace_url }}
+          
+          databricks configure --token <<EOF
+          $WORKSPACEURL
+          $AZURE_TOKEN
+          EOF
+          
+          databricks workspace import_dir --overwrite ${{ inputs.repo_path }} ${{ inputs.databricks_path }}
