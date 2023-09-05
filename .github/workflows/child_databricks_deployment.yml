@@ -1,0 +1,64 @@
+name: child_databricks_deployment
+
+on:
+  #This specifies this is a child github actions
+  workflow_call:
+    inputs:
+      tenant_id:
+        description: 'Tenant ID'
+        required: true
+        type: string
+      subscription_id:
+        description: 'Subscription ID'
+        required: true
+        type: string
+      workspace_url:
+        description: 'Databricks workspace url, starts with HTTPS://'
+        required: true
+        type: string
+      repo_path:
+        description: 'The file path within the repo to the notebooks to be deployed'
+        required: true
+        type: string
+      databricks_path:
+        description: 'The target deployment path in databricks'
+        required: true
+        type: string
+      github_environment:
+        description: 'The github environment to deploy to, this will require a review before deployment'
+        required: true
+        type: string
+      
+    secrets:
+      client_id:
+        description: 'Client ID'
+        required: true
+      client_secret:
+        description: 'Client Secret'
+        required: true
+
+jobs:
+  update-databricks-repo:
+    runs-on: [ubuntu-latest]
+    environment: ${{ inputs.github_environment }}
+    steps:
+      - uses: actions/checkout@v3
+      # Install databricks cli
+      - name: install-databricks-cli
+        uses: microsoft/install-databricks-cli@v1.0.0
+      # Login as the provided service principal credentials from the parent workflow.
+      # This will get an azure access token with permissions to the databricks workspace
+      - name: Aquiring ADB Access Token
+        id: adb-login
+        uses: Azure/azure-resource-login-action@v1.0.0
+        with:
+          creds: '{"clientId":"${{ secrets.client_id }}","clientSecret":"${{ secrets.client_secret }}","subscriptionId":"${{ inputs.subscription_id }}","tenantId":"${{ inputs.tenant_id }}"}'
+          resource-url: 2ff814a6-3304-4ab8-85cb-cd0e6f879c1d
+      #Deploy the notebooks from the input path in the repo to the target path in databricks
+      - name: databricks-import-directory
+        uses: microsoft/databricks-import-notebook@v1.0.0
+        with:
+          databricks-host: ${{ inputs.workspace_url }}
+          databricks-token: ${{ steps.adb-login.outputs.token }}
+          local-path: ${{ inputs.repo_path }}
+          remote-path: ${{ inputs.databricks_path }}
