@@ -19,9 +19,9 @@ jobs:
     # a workflow before it can run.  This is useful if you want to make sure that the code is reviewed before it runs
     uses: ./.github/workflows/child_gov_databricks_deployment.yml
     with:
-      tenant_id: 6c637512-c417-4e78-9d62-b61258e4b619
-      subscription_id: 2fc047b2-f5d2-4595-b6e9-59fcc4b7cda5
-      workspace_url: https://adb-5751579687223883.3.azuredatabricks.net
+      tenant_id: e17c0f0c-6ff0-4c72-9fa8-b5aa41b420e8
+      subscription_id: a793e3af-d8ae-490f-9e17-a5b33025f02d
+      workspace_url: https://adb-953700043831947.7.azuredatabricks.net
       repo_path: ./notebooks
       databricks_path: /Shared/deployed_notebooks
       github_environment: dev
@@ -38,9 +38,9 @@ jobs:
     needs: [dev_deployment]
     uses: ./.github/workflows/child_gov_databricks_deployment.yml
     with:
-      tenant_id: 6c637512-c417-4e78-9d62-b61258e4b619
-      subscription_id: 2fc047b2-f5d2-4595-b6e9-59fcc4b7cda5
-      workspace_url: https://adb-5751579687223883.3.azuredatabricks.net
+      tenant_id: e17c0f0c-6ff0-4c72-9fa8-b5aa41b420e8
+      subscription_id: a793e3af-d8ae-490f-9e17-a5b33025f02d
+      workspace_url: https://adb-8820818186366613.13.azuredatabricks.net
       repo_path: ./notebooks
       databricks_path: /Shared/deployed_notebooks
       github_environment: prod
